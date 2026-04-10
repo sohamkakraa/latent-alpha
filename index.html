@@ -6,6 +6,8 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" sizes="any">
   <title>latent.alpha — Hierarchical AI Agents for Autonomous Trading Research</title>
   <meta name="description" content="An independent research project exploring hierarchical AI agent architectures for autonomous trading in Indian financial markets. RL + LLM orchestration on NSE equities, crypto, forex, and commodities.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -18,14 +20,80 @@
       --text-tertiary: #888888;
       --accent: #0F6E56;
       --accent-light: #1D9E75;
+      --accent-hover: #0b5c48;
       --bg-primary: #ffffff;
       --bg-secondary: #f7f7f8;
       --border-light: #e5e5e7;
       --border-medium: #d1d1d6;
+      --navbar-bg: rgba(255, 255, 255, 0.92);
+      --tag-blue-bg: #e8f0fb;
+      --tag-blue-fg: #1a4f8c;
+      --tag-green-bg: #e1f5ee;
+      --tag-green-fg: #085041;
+      --tag-purple-bg: #eeedfe;
+      --tag-purple-fg: #3c3489;
+      --tag-amber-bg: #faeeda;
+      --tag-amber-fg: #633806;
+      --success-fg: var(--accent);
       --radius: 10px;
       --radius-sm: 6px;
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       --font-serif: Georgia, 'Times New Roman', serif;
+      color-scheme: light;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --text-primary: #f2f2f7;
+        --text-secondary: #b4b4bd;
+        --text-tertiary: #86868f;
+        --accent: #2db88a;
+        --accent-light: #5ee0b5;
+        --accent-hover: #258f70;
+        --bg-primary: #0d0d0f;
+        --bg-secondary: #18181c;
+        --border-light: #2c2c32;
+        --border-medium: #3d3d45;
+        --navbar-bg: rgba(13, 13, 15, 0.9);
+        --tag-blue-bg: #1a2740;
+        --tag-blue-fg: #b8d4ff;
+        --tag-green-bg: #12352c;
+        --tag-green-fg: #8ee0c4;
+        --tag-purple-bg: #252244;
+        --tag-purple-fg: #cfc8ff;
+        --tag-amber-bg: #3a2e18;
+        --tag-amber-fg: #f0d4a8;
+        --success-fg: var(--accent-light);
+        color-scheme: dark;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --text-primary: #f2f2f7;
+      --text-secondary: #b4b4bd;
+      --text-tertiary: #86868f;
+      --accent: #2db88a;
+      --accent-light: #5ee0b5;
+      --accent-hover: #258f70;
+      --bg-primary: #0d0d0f;
+      --bg-secondary: #18181c;
+      --border-light: #2c2c32;
+      --border-medium: #3d3d45;
+      --navbar-bg: rgba(13, 13, 15, 0.9);
+      --tag-blue-bg: #1a2740;
+      --tag-blue-fg: #b8d4ff;
+      --tag-green-bg: #12352c;
+      --tag-green-fg: #8ee0c4;
+      --tag-purple-bg: #252244;
+      --tag-purple-fg: #cfc8ff;
+      --tag-amber-bg: #3a2e18;
+      --tag-amber-fg: #f0d4a8;
+      --success-fg: var(--accent-light);
+      color-scheme: dark;
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
     }
 
     html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
@@ -60,7 +128,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(255,255,255,0.92);
+      background: var(--navbar-bg);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-light);
@@ -105,6 +173,37 @@
       transition: border-color 0.2s, background 0.2s;
     }
     .nav-cta:hover { border-color: var(--text-tertiary); background: var(--bg-secondary); }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      background: var(--bg-secondary);
+    }
+    .theme-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 28px;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+    .theme-btn:hover { color: var(--text-secondary); }
+    .theme-btn[aria-pressed="true"] {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      box-shadow: 0 0 0 1px var(--border-light);
+    }
+    .theme-btn svg { width: 15px; height: 15px; display: block; }
 
     /* ---- HERO ---- */
     .hero {
@@ -167,7 +266,7 @@
       transition: background 0.2s;
       text-decoration: none;
     }
-    .btn-primary:hover { background: #0b5c48; }
+    .btn-primary:hover { background: var(--accent-hover); }
     .btn-ghost {
       font-family: var(--font-sans);
       font-size: 13.5px;
@@ -322,10 +421,10 @@
       margin-bottom: 14px;
       letter-spacing: 0.01em;
     }
-    .arch-tag-blue { background: #e8f0fb; color: #1a4f8c; }
-    .arch-tag-green { background: #e1f5ee; color: #085041; }
-    .arch-tag-purple { background: #eeedfe; color: #3c3489; }
-    .arch-tag-amber { background: #faeeda; color: #633806; }
+    .arch-tag-blue { background: var(--tag-blue-bg); color: var(--tag-blue-fg); }
+    .arch-tag-green { background: var(--tag-green-bg); color: var(--tag-green-fg); }
+    .arch-tag-purple { background: var(--tag-purple-bg); color: var(--tag-purple-fg); }
+    .arch-tag-amber { background: var(--tag-amber-bg); color: var(--tag-amber-fg); }
     .arch-title {
       font-size: 14.5px;
       font-weight: 500;
@@ -444,7 +543,7 @@
       white-space: nowrap;
       transition: background 0.2s;
     }
-    .email-btn:hover { background: #0b5c48; }
+    .email-btn:hover { background: var(--accent-hover); }
     .cta-note {
       font-size: 11px;
       color: var(--text-tertiary);
@@ -453,7 +552,7 @@
     .email-success {
       display: none;
       font-size: 13px;
-      color: var(--accent);
+      color: var(--success-fg);
       font-weight: 500;
       margin-top: 8px;
     }
@@ -510,6 +609,15 @@
       .footer-top { flex-direction: column; gap: 6px; }
     }
   </style>
+  <script>
+    (function () {
+      try {
+        var k = 'latent.alpha.theme';
+        var v = localStorage.getItem(k);
+        if (v === 'light' || v === 'dark') document.documentElement.setAttribute('data-theme', v);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -518,6 +626,17 @@
     <div class="container">
       <a href="#" class="logo">latent<span class="logo-dot">.</span>alpha</a>
       <div class="nav-links">
+        <div class="theme-toggle" role="group" aria-label="Theme">
+          <button type="button" class="theme-btn" data-theme-pick="system" aria-pressed="false" title="Match system">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-pick="light" aria-pressed="false" title="Light">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-pick="dark" aria-pressed="false" title="Dark">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </div>
         <a href="#abstract" class="nav-link">Abstract</a>
         <a href="#architecture" class="nav-link">Architecture</a>
         <a href="#findings" class="nav-link">Findings</a>
@@ -738,6 +857,43 @@
   </main>
 
   <script>
+    (function () {
+      var storageKey = 'latent.alpha.theme';
+      var root = document.documentElement;
+
+      function currentChoice() {
+        var s = localStorage.getItem(storageKey);
+        if (s === 'light' || s === 'dark') return s;
+        return 'system';
+      }
+
+      function syncButtons(choice) {
+        document.querySelectorAll('[data-theme-pick]').forEach(function (btn) {
+          var pick = btn.getAttribute('data-theme-pick');
+          btn.setAttribute('aria-pressed', pick === choice ? 'true' : 'false');
+        });
+      }
+
+      function applyChoice(choice) {
+        if (choice === 'system') {
+          root.removeAttribute('data-theme');
+          try { localStorage.removeItem(storageKey); } catch (e) {}
+        } else {
+          root.setAttribute('data-theme', choice);
+          try { localStorage.setItem(storageKey, choice); } catch (e) {}
+        }
+        syncButtons(choice);
+      }
+
+      document.querySelectorAll('[data-theme-pick]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          applyChoice(btn.getAttribute('data-theme-pick'));
+        });
+      });
+
+      syncButtons(currentChoice());
+    })();
+
     // Scroll-triggered fade-in
     (function() {
       const elements = document.querySelectorAll('.fade-in');
