@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>latent.alpha — Hierarchical AI Agents for Autonomous Trading Research</title>
+  <meta name="description" content="An independent research project exploring hierarchical AI agent architectures for autonomous trading in Indian financial markets. RL + LLM orchestration on NSE equities, crypto, forex, and commodities.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --text-primary: #111111;
+      --text-secondary: #555555;
+      --text-tertiary: #888888;
+      --accent: #0F6E56;
+      --accent-light: #1D9E75;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f7f7f8;
+      --border-light: #e5e5e7;
+      --border-medium: #d1d1d6;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-serif: Georgia, 'Times New Roman', serif;
+    }
+
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ---- Fade-in on scroll ---- */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ---- NAVBAR ---- */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .navbar .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
+    .logo {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      text-decoration: none;
+    }
+    .logo-dot { color: var(--accent-light); }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    .nav-link {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .nav-cta {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border: 1px solid var(--border-medium);
+      border-radius: 20px;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .nav-cta:hover { border-color: var(--text-tertiary); background: var(--bg-secondary); }
+
+    /* ---- HERO ---- */
+    .hero {
+      padding: 72px 0 56px;
+    }
+    .research-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-light);
+      flex-shrink: 0;
+    }
+    .hero h1 {
+      font-size: 40px;
+      font-weight: 500;
+      line-height: 1.12;
+      letter-spacing: -0.035em;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      max-width: 660px;
+    }
+    .hero-sub {
+      font-size: 15.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 520px;
+      margin-bottom: 32px;
+    }
+    .cta-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 52px;
+    }
+    .btn-primary {
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 10px 22px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    .btn-primary:hover { background: #0b5c48; }
+    .btn-ghost {
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 10px 22px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-medium);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      text-decoration: none;
+    }
+    .btn-ghost:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
+
+    /* ---- ABSTRACT ---- */
+    .abstract-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+    }
+    .abstract-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .abstract-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      font-family: var(--font-serif);
+      font-style: normal;
+    }
+    .meta-row {
+      display: flex;
+      gap: 28px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    .meta-item span {
+      display: block;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-top: 1px;
+    }
+
+    /* ---- SECTIONS ---- */
+    .section { padding: 56px 0 0; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .section-h {
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      line-height: 1.25;
+    }
+    .section-sub {
+      font-size: 14.5px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 28px;
+      max-width: 520px;
+    }
+
+    /* ---- FINDINGS ---- */
+    .findings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .finding {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+    }
+    .finding-val {
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    .finding-label {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+    .finding-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .finding-stat {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .finding-stat strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: -0.02em;
+      margin-bottom: 1px;
+    }
+    .finding-note {
+      font-size: 10.5px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    /* ---- ARCHITECTURE ---- */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .arch-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+    }
+    .arch-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 14px;
+      letter-spacing: 0.01em;
+    }
+    .arch-tag-blue { background: #e8f0fb; color: #1a4f8c; }
+    .arch-tag-green { background: #e1f5ee; color: #085041; }
+    .arch-tag-purple { background: #eeedfe; color: #3c3489; }
+    .arch-tag-amber { background: #faeeda; color: #633806; }
+    .arch-title {
+      font-size: 14.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .arch-body {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+    .arch-tech {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 14px;
+    }
+    .tech-pill {
+      font-size: 10.5px;
+      padding: 3px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+    }
+
+    /* ---- RESEARCH SCOPE ---- */
+    .scope-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 32px;
+    }
+    .scope-intro {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 4px;
+    }
+    .scope-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .scope-item {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      padding-left: 14px;
+      border-left: 2px solid var(--border-light);
+    }
+    .scope-item strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    /* ---- CTA SECTION ---- */
+    .cta-section {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      text-align: center;
+      margin-top: 56px;
+    }
+    .cta-h {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      letter-spacing: -0.025em;
+    }
+    .cta-sub {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.65;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .email-row {
+      display: flex;
+      gap: 8px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .email-input {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      padding: 10px 16px;
+      border: 1px solid var(--border-medium);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .email-input::placeholder { color: var(--text-tertiary); }
+    .email-input:focus { border-color: var(--accent); }
+    .email-btn {
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    .email-btn:hover { background: #0b5c48; }
+    .cta-note {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 14px;
+    }
+    .email-success {
+      display: none;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 500;
+      margin-top: 8px;
+    }
+
+    /* ---- FOOTER ---- */
+    .footer-divider {
+      height: 1px;
+      background: var(--border-light);
+      margin: 56px 0 32px;
+    }
+    .footer {
+      padding-bottom: 40px;
+    }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .disclaimer {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.75;
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 30px; }
+      .findings-grid { grid-template-columns: 1fr; }
+      .arch-grid { grid-template-columns: 1fr; }
+      .scope-grid { grid-template-columns: 1fr; }
+      .nav-links { gap: 14px; }
+      .nav-link { display: none; }
+      .hero { padding: 48px 0 40px; }
+      .section { padding: 40px 0 0; }
+      .meta-row { gap: 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 26px; }
+      .section-h { font-size: 20px; }
+      .finding-val { font-size: 24px; }
+      .email-row { flex-direction: column; }
+      .email-btn { width: 100%; padding: 12px; }
+      .abstract-box { padding: 18px 20px; }
+      .scope-section { padding: 22px 20px; }
+      .cta-section { padding: 28px 20px; }
+      .footer-top { flex-direction: column; gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="#" class="logo">latent<span class="logo-dot">.</span>alpha</a>
+      <div class="nav-links">
+        <a href="#abstract" class="nav-link">Abstract</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="#findings" class="nav-link">Findings</a>
+        <a href="#contact" class="nav-link">Contact</a>
+        <a href="#follow" class="nav-cta">Follow research</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="research-badge fade-in">
+        <div class="badge-dot"></div>
+        Research concept &middot; 2025 &middot; India markets
+      </div>
+
+      <h1 class="fade-in">Hierarchical AI agents for autonomous retail trading</h1>
+
+      <p class="hero-sub fade-in">
+        An open research project at the intersection of reinforcement learning, large language models, and real-time market signals &mdash; applied to NSE equities, cryptocurrency pairs, INR forex segments, and commodity instruments.
+      </p>
+
+      <div class="cta-row fade-in">
+        <a href="#follow" class="btn-primary">Follow this research</a>
+        <a href="#architecture" class="btn-ghost">Read the architecture</a>
+      </div>
+
+      <!-- ABSTRACT -->
+      <div id="abstract" class="abstract-box fade-in">
+        <div class="abstract-label">Abstract</div>
+        <p class="abstract-text">
+          We present a hierarchical agent architecture combining reinforcement learning-trained trading models with a large language model orchestration layer capable of real-time news ingestion, agentic tool use, and natural language instruction parsing. The system is evaluated across three risk-appetite profiles on NSE equities, cryptocurrency pairs, INR forex segments, and commodity instruments using simulated paper portfolios. Agents demonstrate continuous self-improvement through post-trade analysis loops. This work explores whether conversational AI interfaces can democratize access to quantitative strategies historically available only to institutional desks.
+        </p>
+        <div class="meta-row">
+          <div class="meta-item">
+            Domain
+            <span>Computational finance &middot; AI agents</span>
+          </div>
+          <div class="meta-item">
+            Markets
+            <span>NSE &middot; BSE &middot; Crypto &middot; Forex &middot; Commodities</span>
+          </div>
+          <div class="meta-item">
+            Status
+            <span>Active research &middot; Pre-publication</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRELIMINARY FINDINGS -->
+    <section id="findings" class="section fade-in">
+      <div class="section-label">Preliminary findings</div>
+      <div class="section-h">Simulated benchmark results</div>
+      <p class="section-sub">Paper portfolio backtesting 2018&ndash;2024. Not indicative of live trading performance.</p>
+
+      <div class="findings-grid">
+        <div class="finding">
+          <div class="finding-val" style="color: #085041;">11.4%</div>
+          <div class="finding-label">Conservative agent &mdash; average simulated annual return on Nifty 50 universe</div>
+          <div class="finding-stats">
+            <div class="finding-stat">
+              <strong>0.87</strong>
+              Sharpe ratio
+            </div>
+            <div class="finding-stat">
+              <strong>7.3%</strong>
+              Max drawdown
+            </div>
+          </div>
+          <div class="finding-note">Benchmark: Nifty 50 CAGR ~12% over same period. Agent prioritizes capital preservation.</div>
+        </div>
+
+        <div class="finding">
+          <div class="finding-val" style="color: #185FA5;">23.7%</div>
+          <div class="finding-label">Balanced agent &mdash; average simulated annual return on mid-cap + momentum strategies</div>
+          <div class="finding-stats">
+            <div class="finding-stat">
+              <strong>1.41</strong>
+              Sharpe ratio
+            </div>
+            <div class="finding-stat">
+              <strong>14.2%</strong>
+              Max drawdown
+            </div>
+          </div>
+          <div class="finding-note">Best risk-adjusted return across profiles. Multi-factor stock selection with position sizing.</div>
+        </div>
+
+        <div class="finding">
+          <div class="finding-val" style="color: #993C1D;">41.2%</div>
+          <div class="finding-label">Aggressive agent &mdash; average simulated annual return on multi-asset, high-volatility strategy</div>
+          <div class="finding-stats">
+            <div class="finding-stat">
+              <strong>0.98</strong>
+              Sharpe ratio
+            </div>
+            <div class="finding-stat">
+              <strong>31.8%</strong>
+              Max drawdown
+            </div>
+          </div>
+          <div class="finding-note">Highest absolute return but significant tail risk. Includes crypto and commodity positions.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section id="architecture" class="section fade-in">
+      <div class="section-label">System architecture</div>
+      <div class="section-h">Four-layer intelligence stack</div>
+      <p class="section-sub">The RL core handles strategy. The LLM layer handles context and language. Execution and learning loops close the feedback cycle.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card">
+          <div class="arch-tag arch-tag-blue">Layer 1 &middot; RL core</div>
+          <div class="arch-title">Reinforcement learning trading agents</div>
+          <div class="arch-body">PPO and SAC agents trained on 10+ years of historical OHLCV data. Reward functions shaped by Sharpe ratio, Calmar ratio, and maximum drawdown. Three separate models per risk tier, evaluated with walk-forward validation to reduce overfitting.</div>
+          <div class="arch-tech">
+            <span class="tech-pill">FinRL</span>
+            <span class="tech-pill">Stable-Baselines3</span>
+            <span class="tech-pill">PPO / SAC</span>
+            <span class="tech-pill">Sharpe reward</span>
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-tag arch-tag-green">Layer 2 &middot; LLM orchestration</div>
+          <div class="arch-title">Agentic LLM with tool-calling</div>
+          <div class="arch-body">A large language model acts as the reasoning layer &mdash; ingesting financial news, parsing natural language instructions, and modulating RL agent parameters in response to macro context. Latency-optimized for swing trading, not HFT.</div>
+          <div class="arch-tech">
+            <span class="tech-pill">LangGraph</span>
+            <span class="tech-pill">RAG pipeline</span>
+            <span class="tech-pill">Tool calling</span>
+            <span class="tech-pill">Claude / GPT-4o</span>
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-tag arch-tag-purple">Layer 3 &middot; Execution</div>
+          <div class="arch-title">Broker API + confirmation layer</div>
+          <div class="arch-body">Paper trading via simulated portfolios. Live execution (research phase) through Zerodha Kite API and Angel SmartAPI. A mandatory confirmation layer intercepts every autonomous action before execution, preserving human-in-the-loop control. All orders are idempotent.</div>
+          <div class="arch-tech">
+            <span class="tech-pill">Zerodha Kite</span>
+            <span class="tech-pill">Angel SmartAPI</span>
+            <span class="tech-pill">Idempotent orders</span>
+            <span class="tech-pill">Human-in-the-loop</span>
+          </div>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-tag arch-tag-amber">Layer 4 &middot; Learning loop</div>
+          <div class="arch-title">Continuous post-trade analysis</div>
+          <div class="arch-body">After each completed trade cycle, a critic module analyzes the outcome against the agent's stated reasoning. Losing trades trigger a strategy review. Updated policies are tested on paper before re-deployment to live portfolios.</div>
+          <div class="arch-tech">
+            <span class="tech-pill">Critic module</span>
+            <span class="tech-pill">Policy update</span>
+            <span class="tech-pill">Paper validation</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESEARCH SCOPE -->
+    <section class="section fade-in">
+      <div class="section-label">Research scope</div>
+      <div class="scope-section">
+        <div class="section-h" style="margin-bottom: 4px;">What this project is &mdash; and isn't</div>
+        <p class="scope-intro">Clearly defining the boundaries of this research effort.</p>
+        <div class="scope-grid">
+          <div class="scope-item">
+            <strong>This is</strong>
+            An open research project exploring AI agent behavior in financial market simulations. All results are from paper portfolios. No real capital is deployed in any experiment.
+          </div>
+          <div class="scope-item">
+            <strong>This is not</strong>
+            A financial product, investment advisor, or trading platform. Nothing published here constitutes investment advice or a solicitation to trade any security or instrument.
+          </div>
+          <div class="scope-item">
+            <strong>Our goal</strong>
+            To understand whether hierarchical AI agents can match or exceed benchmark performance while remaining interpretable, safe, and accessible to non-expert retail participants.
+          </div>
+          <div class="scope-item">
+            <strong>Open questions</strong>
+            Overfitting to historical market regimes, LLM hallucination on financial news, correlated agent behavior at scale, and regulatory uncertainty around AI-driven execution in India.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOLLOW CTA -->
+    <section id="follow" class="fade-in">
+      <div id="contact" class="cta-section">
+        <div class="cta-h">Follow this research</div>
+        <p class="cta-sub">Get notified when we publish findings, architecture updates, and early access to the paper trading sandbox.</p>
+        <form class="email-row" id="email-form">
+          <input class="email-input" type="email" placeholder="your@email.com" required aria-label="Email address">
+          <button type="submit" class="email-btn">Follow</button>
+        </form>
+        <p class="email-success" id="email-success">Subscribed. We'll be in touch.</p>
+        <p class="cta-note">No spam. Research updates only.</p>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <div class="footer-divider"></div>
+    <footer class="footer">
+      <div class="footer-top">
+        <span>latent.alpha &middot; Independent research project &middot; 2025</span>
+        <span>Not affiliated with SEBI, NSE, BSE, or any regulated entity</span>
+      </div>
+      <div class="disclaimer">
+        This website describes an independent research project. All trading results shown are simulated backtested outcomes on paper portfolios and do not represent real trading performance. Past simulated performance is not indicative of future results. This project does not constitute investment advice, a financial product, or a solicitation to invest. The researchers are not registered investment advisors. Nothing on this page should be construed as a recommendation to buy or sell any security or financial instrument.
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // Scroll-triggered fade-in
+    (function() {
+      const elements = document.querySelectorAll('.fade-in');
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      elements.forEach(function(el) { observer.observe(el); });
+    })();
+
+    // Email form handler
+    document.getElementById('email-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email = this.querySelector('.email-input').value;
+      console.log('[latent.alpha] Email captured:', email);
+      this.style.display = 'none';
+      document.getElementById('email-success').style.display = 'block';
+    });
+  </script>
+
+</body>
+</html>
