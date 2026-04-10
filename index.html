@@ -753,10 +753,14 @@
     })();
 
     // Email form handler
-    document.getElementById('email-form').addEventListener('submit', function(e) {
+    document.getElementById('email-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-      var email = this.querySelector('.email-input').value;
-      console.log('[latent.alpha] Email captured:', email);
+      const email = this.querySelector('.email-input').value;
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
       this.style.display = 'none';
       document.getElementById('email-success').style.display = 'block';
     });
