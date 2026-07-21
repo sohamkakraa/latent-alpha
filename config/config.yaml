@@ -1,0 +1,380 @@
+# latent.alpha — Agent Configuration
+# All hyperparameters, risk profiles, and market settings in one place.
+
+# ── Market universe ──────────────────────────────────────────────────────────
+market:
+  tickers:                        # Nifty 50 subset to start; expand as needed
+    - "RELIANCE.NS"
+    - "TCS.NS"
+    - "INFY.NS"
+    - "HDFCBANK.NS"
+    - "ICICIBANK.NS"
+    - "HINDUNILVR.NS"
+    - "ITC.NS"
+    - "KOTAKBANK.NS"
+    - "LT.NS"
+    - "AXISBANK.NS"
+  benchmark: "^NSEI"              # Nifty 50 index for benchmark comparison
+  currency: "INR"
+  data_source: "yfinance"         # yfinance pulls NSE data via Yahoo Finance
+
+# ── Term horizons ─────────────────────────────────────────────────────────────
+# Each horizon has its own data frequency, lookback window, and hold period.
+terms:
+  short:
+    interval: "1h"                # Hourly bars
+    lookback_days: 30             # Training lookback window
+    hold_period_days: 1           # Max hold before forced re-evaluation
+    rebalance_freq: "daily"
+  medium:
+    interval: "1d"                # Daily bars
+    lookback_days: 180
+    hold_period_days: 10
+    rebalance_freq: "weekly"
+  long:
+    interval: "1wk"               # Weekly bars
+    lookback_days: 730            # 2 years
+    hold_period_days: 60
+    rebalance_freq: "monthly"
+
+# ── Risk profiles ─────────────────────────────────────────────────────────────
+# These coefficients are injected into the reward function at runtime.
+# Higher drawdown_penalty = more conservative behaviour.
+risk_profiles:
+  conservative:
+    sharpe_weight: 1.5            # Weight on Sharpe ratio in reward
+    return_weight: 0.5            # Weight on raw return
+    drawdown_penalty: 3.0         # Multiplier on max drawdown penalty
+    max_position_pct: 0.10        # Max allocation to any single stock
+    leverage: 1.0                 # No leverage
+    stop_loss_pct: 0.05           # Hard stop-loss at 5%
+    stop_loss_terminal_penalty: 10.0   # Added to reward on stop-loss truncation.
+                                        # Prevents the agent from learning to deliberately
+                                        # trigger stop-loss to terminate the episode early
+                                        # (observed as eval reward 34.6→21.3, ep_len stuck at 138).
+  balanced:
+    sharpe_weight: 1.0
+    return_weight: 1.0
+    drawdown_penalty: 1.5
+    max_position_pct: 0.25        # Widened from 0.20 — agent builds positions gradually via deltas
+    leverage: 1.0
+    stop_loss_pct: 0.12           # Widened from 0.08 — gives more room before forced truncation
+    stop_loss_terminal_penalty: 5.0
+  aggressive:
+    sharpe_weight: 0.5
+    return_weight: 2.0
+    drawdown_penalty: 0.5
+    max_position_pct: 0.35
+    leverage: 1.5
+    stop_loss_pct: 0.15
+    stop_loss_terminal_penalty: 3.0
+
+# ── Technical indicators ─────────────────────────────────────────────────────
+# These are computed on raw OHLCV and appended to the observation vector.
+indicators:
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  bb_period: 20
+  bb_std: 2.0
+  atr_period: 14
+  ema_periods: [9, 21, 50]
+
+# ── PPO hyperparameters ──────────────────────────────────────────────────────
+ppo:
+  learning_rate: 2.5e-4
+  n_steps: 4096                   # Larger rollout = better gradient estimates for continuous actions
+  batch_size: 128
+  n_epochs: 10
+  gamma: 0.99                     # Discount factor
+  gae_lambda: 0.95                # GAE lambda
+  clip_range: 0.2
+  ent_coef: 0.02                  # Tuned: 0.05 caused entropy explosion (std>1000), 0.02 balances exploration vs stability
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  policy: "MlpPolicy"
+  net_arch: [256, 256, 128]       # Policy + value network layers
+  total_timesteps: 5_000_000      # 5M minimum for 10-stock continuous action space
+
+# ── SAC hyperparameters ──────────────────────────────────────────────────────
+# SAC is the recommended algorithm for this problem.
+# Auto entropy tuning was tried extensively and collapsed in every experiment
+# (ent_coef → 0.0004 by 500K steps). Fixed ent_coef is the stable alternative.
+sac:
+  learning_rate: 3.0e-4            # Adam LR, applied to actor + critic
+  buffer_size: 500_000             # Replay buffer. 500k is plenty for ~1500 trading days
+  batch_size: 256                  # Mini-batch sampled from replay buffer each gradient step
+  tau: 0.005                       # Soft target network update rate (Polyak averaging)
+  gamma: 0.99                      # Discount factor — same as PPO
+  ent_coef: 0.01                   # FIXED — auto-tuning collapsed in every experiment.
+                                   # 0.01 = sweep winner (rs=10, ec=0.01): Sharpe 1.083, Calmar 2.851.
+                                   # Tune range: [0.005, 0.1]. Lower = more exploitation.
+  train_freq: 1                    # Update every environment step
+  gradient_steps: 1                # One gradient step per env step (increase for faster learning)
+  learning_starts: 10_000          # Fill replay buffer before training begins
+  policy: "MlpPolicy"
+  net_arch: [512, 512]             # 512 > obs_dim (~492 with meta-model) — good compression ratio
+  total_timesteps: 3_000_000       # Increased from 2M — delta-weight action space needs more exploration
+
+  # ── Evaluation + early stopping ──────────────────────────────────────────
+  # EvalCallback scores the held-out last-20% slice of the train window every
+  # `eval_freq` steps. Early stopping halts when that score stops improving, so
+  # a single long run auto-finds the sweet spot. NOTE: the held-out slice is
+  # in-window (adjacent to train), not the true walk-forward OOS fold — this
+  # curbs in-window overfit but is not a guarantee against OOS overfit.
+  # DEFAULT OFF: a fixed-timestep grid needs every fold trained to the same step
+  # count for comparability; early stopping breaks that. Set patience >0 only for
+  # exploratory single runs where you want one run to find the sweet spot.
+  eval_freq: 10_000                # Steps between evals
+  n_eval_episodes: 1               # Env is deterministic — extra episodes are identical
+  early_stop_patience: 0           # Evals with no improvement before stopping (0 = off)
+  early_stop_min_evals: 10         # Never stop before this many evals (warmup floor)
+  checkpoint_freq: 10_000          # Policy + VecNormalize crash checkpoint
+  replay_checkpoint_freq: 50_000   # Exact replay state for science-grade resume
+
+# ── LLM / News configuration ─────────────────────────────────────────────────
+llm:
+  # Live inference model (used in simulate.py and --with-news flag)
+  live_model: "claude-sonnet-4-6"
+
+  # Historical precomputation model (used in precompute_sentiment.py)
+  # "local" = Gemma 4 via Ollama (free, recommended)
+  # "haiku"  = Claude Haiku (~₹78 total for 6yr)
+  # "sonnet" = Claude Sonnet (~₹934 total)
+  precompute_model: "local"
+  ollama_model: "gemma4:latest"
+
+  # Hard spend cap for precomputation (INR)
+  budget_inr: 2000.0
+
+  sentiment_dim: 10               # Must match len(SENTIMENT_AXES) in sentiment_encoder.py
+  sentiment_cache_model: "gdelt_tone_v2"
+  sentiment_schema_version: 2
+  cache_ttl_minutes: 60           # Live inference cache TTL
+  min_sources_for_verification: 2
+  max_articles_per_ticker: 5
+
+  # ── Phase 4: Debate analyst ──────────────────────────────────────────────
+  debate:
+    enabled: true
+    obs_dim: 20              # 2 × n_stocks (direction + conviction)
+    cache_ttl_minutes: 1440  # Cache debate results for 24h
+    model: "local"           # "local" for Ollama, "sonnet" for Claude
+    max_tokens: 2048
+
+  # ── Phase 4: Post-hoc explainability ─────────────────────────────────────
+  explainer:
+    enabled: false               # Only enable for analysis runs, not training
+    min_delta_to_explain: 0.02   # Only explain weight changes > 2%
+    model: "local"               # "local" for Ollama, "sonnet" for Claude
+
+  # ── Noise injection (training only) ──────────────────────────────────────
+  # Real news feeds are noisy: misattributed articles, delayed signals,
+  # conflicting sources. Training on augmented sentiment prevents the agent
+  # from overfitting to a "perfect" news signal that won't exist in live trading.
+  noise_std: 0.12          # Gaussian noise added to sentiment values during training
+  dropout_prob: 0.20       # Probability of zeroing entire sentiment vector (no-news day)
+
+  cache_dir: "./data/sentiment_cache"
+
+  news_sources:                   # RSS feeds — add more as needed
+    - name: "Economic Times Markets"
+      url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
+    - name: "Moneycontrol"
+      url: "https://www.moneycontrol.com/rss/marketreports.xml"
+    - name: "CNBC TV18 Markets"
+      url: "https://www.cnbctv18.com/commonfeeds/v1/eng/rss/market.xml"
+    - name: "Business Standard Markets"
+      url: "https://www.business-standard.com/rss/markets-106.rss"
+
+# ── v3.1 Alpha model ─────────────────────────────────────────────────────────
+# LightGBM cross-sectional alpha prediction layer.
+# When enabled, the alpha model:
+#   1. Computes 50+ features per stock via AlphaFeatureEngine
+#   2. Trains LightGBM to predict N-day forward returns
+#   3. Produces AlphaSignal (direction + conviction) per stock
+#   4. Injects signal into SAC observation space (obs_dim extra dims)
+alpha:
+  enabled: true                     # Set false to use v2 SAC-only mode
+  obs_dim: 20                       # 2 × n_stocks (direction + conviction per stock)
+
+  # Forward return prediction target
+  forward_horizon: 10               # Exp B: aligned with balanced profile's 10-day hold period
+  purge_gap: 10                     # Must cover the full 10-day label horizon
+
+  # Cross-validation
+  n_cv_folds: 5                     # Purged walk-forward CV folds
+  min_train_samples: 500            # Skip fold if fewer training samples
+
+  # LightGBM hyperparameters (overrides defaults in lightgbm_alpha.py)
+  lgb_params:
+    num_leaves: 63
+    learning_rate: 0.05
+    feature_fraction: 0.7           # Column subsampling per tree
+    bagging_fraction: 0.8           # Row subsampling per tree
+    bagging_freq: 5
+    min_child_samples: 50           # Conservative — prevents overfitting on noise
+    lambda_l1: 0.1                  # L1 regularisation
+    lambda_l2: 1.0                  # L2 regularisation (heavier — financial data is noisy)
+    max_depth: 7
+    n_estimators: 500
+    early_stopping_rounds: 50
+
+  # ── Phase 4: Adversarial conviction filter ───────────────────────────────
+  adversarial_filter:
+    enabled: false               # Enable for backtest analysis; disabled during training
+    conviction_threshold: 0.7    # Only challenge high-conviction signals
+    counter_conviction_threshold: 0.7  # Reduce conviction if counter > this
+    dampening: 0.3               # How much to reduce conviction (0=no effect, 1=full)
+    model: "local"               # "local" for Ollama, "sonnet" for Claude
+
+  # Feature groups to include (all enabled by default)
+  feature_groups:
+    momentum: true
+    volatility: true
+    volume: true
+    trend: true
+    mean_reversion: true
+    cross_stock: true
+    rolling_stats: true
+    calendar: true
+
+  # Exp B: conviction gate — zero out low-conviction alpha signals before SAC sees them
+  conviction_gate: 0.3              # Only pass signals with conviction > 0.3
+
+  # Meta-model (stacking) configuration
+  meta_ridge_alpha: 1.0             # Ridge regularisation for combining channels
+
+# ── v3.1 Phase 2: PatchTST ──────────────────────────────────────────────────
+# Patch Time Series Transformer for long-range temporal pattern recognition.
+# Captures 6-month momentum cycles, earnings patterns, and seasonal effects
+# that LightGBM's point-in-time features miss.
+patchtst:
+  enabled: true                     # Set false to disable temporal encoding
+  obs_dim: 20                       # Per-step obs: 10 direction + 10 conviction (embedding reserved for meta-model only)
+
+  # Sequence construction
+  context_len: 120                  # Lookback window: 120 trading days ≈ 6 months
+  forward_horizon: 10               # Exp B: aligned with alpha model's 10-day horizon
+
+  # Patch parameters
+  patch_len: 5                      # One trading week per patch
+  stride: 5                         # Non-overlapping → 24 patches per sequence
+
+  # Transformer architecture
+  d_model: 64                       # Hidden dimension (compact: financial data is noisy)
+  n_heads: 4                        # Attention heads (d_model/n_heads = 16 per head)
+  n_layers: 3                       # Encoder depth (shallow: prevents overfitting)
+  d_ff: 128                         # Feedforward hidden dim (2× d_model)
+  embed_dim: 16                     # Output embedding dim per stock
+  dropout: 0.1                      # Dropout rate
+
+  # Training
+  learning_rate: 1.0e-3             # AdamW LR with cosine annealing
+  epochs: 50                        # Max epochs (early stopping usually triggers at ~30)
+  batch_size: 64
+  patience: 10                      # Early stopping patience
+
+# ── Environment settings ──────────────────────────────────────────────────────
+env:
+  initial_capital: 1_000_000     # ₹10 lakh paper portfolio
+  transaction_cost_pct: 0.001    # 0.1% brokerage + STT approximation
+  slippage_pct: 0.0005           # 0.05% slippage model
+  allow_short: false             # Cash-equity deployment; no overnight naked shorts
+  execution_lag_bars: 1          # Observe t-1, execute at t
+  reward_scaling: 10.0           # Sweep winner — rs=10 beat rs=1/50/100 (Sharpe 1.083 @ ent=0.01)
+
+  # v2: Anti-churning parameters (from trade post-mortem)
+  # The old agent lost 65% of total PnL to transaction costs from daily churning.
+  max_weight_delta: 0.05         # Max weight change per stock per step (±5%)
+                                 # Agent outputs deltas, not absolute targets.
+                                 # To go from 0% to 20% in a stock takes 4 steps minimum.
+  min_hold_steps: 5              # After flipping direction, lock position for 5 days.
+                                 # Prevents the oscillation pattern (neg autocorr of -0.4).
+  turnover_penalty: 50.0         # Exp B: reduced from 100 — alpha signals need room to act.
+                                 # Old value was effectively ~10. Raised 10× based on
+                                 # finding that 65% of losses were transaction costs.
+  holding_bonus: 0.02            # Reward for keeping positions stable (< 2% mean change).
+                                 # Directly counteracts the daily-flip behaviour.
+
+# ── v3.1 Phase 3: GNN cross-stock model ─────────────────────────────────────
+gnn:
+  enabled: true                     # Phase 3 enabled
+  obs_dim: 20                       # 2 × n_stocks (direction + conviction)
+
+  # Graph construction
+  correlation_window: 60            # Rolling window for adjacency computation
+  edge_threshold: 0.3               # |corr| > threshold to create edge
+  self_loops: true                  # Include self-connections
+
+  # GAT architecture
+  d_input: 6                        # Causal return/volatility/volume features
+  d_hidden: 32                      # Hidden dimension
+  n_heads: 4                        # Attention heads
+  n_layers: 2                       # GAT depth
+  dropout: 0.1
+
+  # Training
+  learning_rate: 1.0e-3
+  epochs: 30
+  batch_size: 64
+  patience: 8
+  forward_horizon: 10               # ALIGNED with alpha/patchtst — was 5 (misaligned)
+
+# ── v3.1 Phase 3: VAE regime detection ──────────────────────────────────────
+vae_regime:
+  enabled: true                     # Phase 3 enabled
+  obs_dim: 8                        # Latent embedding dimension
+
+  # Architecture
+  d_input: 74                       # 10 stocks × 7 features + 4 cross-stock
+  d_hidden: 64                      # Encoder/decoder hidden dim
+  d_latent: 8                       # Latent space dimension
+  n_regimes: 4                      # Number of regime categories
+
+  # Training
+  learning_rate: 1.0e-3
+  epochs: 50
+  batch_size: 128
+  patience: 10
+  beta_start: 0.0                   # KL weight start (annealed to 1.0)
+  beta_end: 1.0                     # KL weight end
+  beta_anneal_epochs: 10            # Epochs to anneal beta
+  gamma: 0.5                        # Regime classification loss weight
+
+# ── v3.2 Meta-model activation ──────────────────────────────────────────────
+meta_model:
+  enabled: true                    # Activate Ridge meta-model to combine channels
+  obs_dim: 20                      # Combined signal: 2 × n_stocks (direction + conviction)
+  ridge_alpha: 1.0                 # L2 regularisation for Ridge regression
+  min_train_samples: 200           # Minimum samples before meta-model trains
+  fallback: "equal_weight"         # If training fails: "equal_weight" or "alpha_only"
+
+# ── v3.2 Multi-horizon orchestrator ─────────────────────────────────────────
+multi_horizon:
+  enabled: false                   # Set true for multi-horizon mode
+  horizons: ["medium", "long"]     # Active horizons
+  combination: "equal_weight"      # "equal_weight", "risk_parity", "sharpe_weighted"
+  capital_split:
+    short: 0.2
+    medium: 0.5
+    long: 0.3
+
+# ── Backtesting ──────────────────────────────────────────────────────────────
+backtest:
+  start_date: "2018-01-01"
+  end_date: "2026-07-01"
+  walk_forward_train_months: 36  # 3-year train window — agent must generalise across regimes
+  walk_forward_test_months: 6    # 6-month test window — more steps per fold, more reliable metrics
+  min_train_samples: 500         # Skip fold if insufficient data
+  training_warmup_days: 800      # History for 252d features; excluded from fitting
+  development_folds: [0, 1, 2, 3, 4, 5, 6]  # Through 2024-H1
+  lockbox_folds: [7, 8, 9, 10]             # 2024-H2 through 2026-H1
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+paths:
+  data_cache: "./data/cache"
+  model_dir: "./models"
+  results_dir: "./results"
+  logs_dir: "./logs"

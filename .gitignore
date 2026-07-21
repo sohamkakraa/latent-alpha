@@ -1,0 +1,39 @@
+# Secrets
+.env
+.env.*
+*.env
+
+# Prism (auto-generated, machine-specific)
+.claude/settings.local.json
+.claude/prism.md
+.claude/skills/
+.claude/.prism_project_id
+
+# Training artifacts — large, machine-specific, regenerated each run
+models/best/
+models/checkpoints/
+models/*.zip
+models/*.pkl
+models/*.bak
+logs/
+*.log
+data/cache/
+data/sentiment_cache.db
+results/*.csv
+results/*.png
+results/*.json
+results/fold_checkpoints/
+results/sweep/
+results/experiments/**
+results/search/
+results/final_validation/
+
+# OS / editor cruft
+.DS_Store
+**/.DS_Store
+.codex/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.venv/

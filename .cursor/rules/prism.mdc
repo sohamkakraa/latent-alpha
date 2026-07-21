@@ -1,0 +1,32 @@
+---
+description: Prism active knowledge — project-specific engrams and team patterns
+alwaysApply: true
+---
+
+# Learned Knowledge (Prism)
+<!-- Updated: 2026-07-21T22:10:54Z | 2 pushed, 0 via MCP -->
+
+## Key Preferences
+
+- External data caches (e.g., sentiment embeddings, model outputs) can silently fail through zero-filling or default values on cache miss. Row count and schema validation alone will not detect this corruption. Pre-execution validation must sample actual values across the cache range, not just verify table existence and column structure, because millions of zero-vector rows will silently corrupt training without raising any schema-level errors. (0.65 [solution])
+- GDELT TimelineTone DOC API must be queried in 90-day chunks to retain daily resolution across multi-year spans. Attempting to query larger date ranges (e.g., 2018-2025 in one call) results in aggregated data loss. Per-ticker components are persisted immediately after each chunk to ensure resumability on interruption; rerunning skips completed ticker/date chunks. (0.44 [domain_fact])
+
+---
+Full knowledge base available via prism MCP tools.
+
+**Search** (`prism_search`): when encountering errors, starting tasks, or making design decisions.
+
+**Record** (`prism_record`): proactively record knowledge when you discover it:
+- Design decisions with rationale ("chose X because Y")
+- Project conventions and coding standards
+- Domain facts (API limits, service ownership, deployment rules)
+- Non-obvious error resolutions that required trial-and-error
+- User corrections or preference signals ("actually, use X instead")
+
+**When to record** (evaluate after completing non-trivial tasks):
+- Did you try an approach that failed before finding what works?
+- Did the user correct you or express a preference?
+- Was the solution non-obvious or project-specific?
+- Would this knowledge help in a future session?
+
+Don't record one-off task instructions, exploratory discussion, or obvious patterns.
